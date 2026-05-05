@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=download_rsna_intracranial_hemorrhage
-#SBATCH --partition=medium
+#SBATCH --partition=long
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
-#SBATCH --time=05:00:00
+#SBATCH --time=10:00:00
 #SBATCH --output=download_rsna.out
 #SBATCH --error=download_rsna.err
 
