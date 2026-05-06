@@ -1,8 +1,8 @@
 import argparse
 import logging
-import os
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
 
 import numpy as np
 import pydicom
@@ -42,7 +42,7 @@ def hu_to_array(ds: FileDataset) -> np.ndarray:
     return raw * slope + intercept
 
 
-def extract_slices_from_file(dicom_path: str, output_dir: str) -> int:
+def extract_slices_from_file(dicom_path: str | Path, output_dir: str | Path) -> int:
     """Extract slices from a single DICOM file and save as PNG images. Returns the number of slices extracted."""
 
     ds = pydicom.dcmread(dicom_path)
@@ -56,14 +56,14 @@ def extract_slices_from_file(dicom_path: str, output_dir: str) -> int:
     slices = hu_array if is_volume else hu_array[np.newaxis, ...]
     num_slices = slices.shape[0]
 
-    base_name = os.path.splitext(os.path.basename(dicom_path))[0]
+    base_name = Path(dicom_path).stem
 
     for idx in range(num_slices):
         windowed = apply_window(slices[idx], WINDOW_WIDTH, WINDOW_LEVEL)
         img = Image.fromarray(windowed, mode="L")
         slice_tag = f"slice{idx:04d}" if is_volume else "slice0000"
         filename = f"{base_name}_{slice_tag}.png"
-        out_path = os.path.join(output_dir, filename)
+        out_path = Path(output_dir) / filename
         img.save(out_path)
         logger.debug("Saved %s", out_path)
 
@@ -81,13 +81,13 @@ def process_dicom_file(task: tuple[str, str]) -> tuple[str, int, str | None]:
         return dicom_path, 0, str(exc)
 
 
-def collect_dicom_files(input_dir: str) -> list[str]:
+def collect_dicom_files(input_dir: str | Path) -> list[str]:
     """Recursively collect all valid DICOM files from the input directory."""
 
     dicom_files = []
-    for root, _, files in os.walk(input_dir):
+    for root, _, files in Path(input_dir).rglob("*"):
         for fname in files:
-            fpath = os.path.join(root, fname)
+            fpath = Path(root) / fname
             try:
                 pydicom.dcmread(fpath, stop_before_pixels=True)
                 dicom_files.append(fpath)
@@ -104,11 +104,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "input_dir",
+        type=Path,
         help="Path to a directory containing DICOM files.",
     )
     parser.add_argument(
         "-o",
         "--output",
+        type=Path,
         default="dicom_slices",
         help="Output directory for extracted slice images. Default: dicom_slices/",
     )
@@ -121,7 +123,7 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
 
-    if not os.path.isdir(args.input_dir):
+    if not args.input_dir.is_dir():
         parser.error(f"input_dir is not a valid directory: {args.input_dir}")
 
     if args.workers < 1:
@@ -133,6 +135,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
+    Path(args.output).mkdir(parents=True, exist_ok=True)
     dicom_files = collect_dicom_files(args.input_dir)
     if not dicom_files:
         logger.error("No valid DICOM files found in: %s", args.input_dir)
@@ -145,7 +148,6 @@ def main() -> None:
         WINDOW_LEVEL,
         args.workers,
     )
-    os.makedirs(args.output, exist_ok=True)
 
     total_slices = 0
     if args.workers == 1:
