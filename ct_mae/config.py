@@ -64,3 +64,5 @@ class MAEConfig:
     save_every: int = 50
     log_every: int = 50
     seed: int = 42
+    use_amp: bool = True
+    amp_dtype: str = "bfloat16"

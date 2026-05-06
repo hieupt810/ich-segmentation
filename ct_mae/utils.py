@@ -6,12 +6,18 @@ import torch
 
 
 # --- Mixed precision utilities ---
-def autocast_context(device: torch.device) -> torch.amp.autocast:
-    """Returns an autocast context manager for the specified device. Uses float16 for CUDA devices and float32 for others."""
+def resolve_amp_dtype(name: str) -> torch.dtype:
+    """Resolves a string name to a torch.dtype for automatic mixed precision (AMP)."""
 
-    dtype: torch.dtype = torch.float16 if device.type == "cuda" else torch.float32
-    enabled: bool = device.type == "cuda"
-    return torch.amp.autocast(device_type=device.type, dtype=dtype, enabled=enabled)
+    mapping: dict[str, torch.dtype] = {
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+    }
+    if name not in mapping:
+        raise ValueError(
+            f"amp_dtype must be one of {list(mapping.keys())}, got '{name!r}'"
+        )
+    return mapping[name]
 
 
 # --- Reproducibility utilities ---

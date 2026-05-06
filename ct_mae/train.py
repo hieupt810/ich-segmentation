@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import math
 
@@ -9,7 +11,7 @@ from transformers import ViTMAEConfig, ViTMAEForPreTraining
 from .config import MAEConfig
 from .dataset import RSNADataset
 from .transform import build_transform
-from .utils import seed_worker, set_seed
+from .utils import resolve_amp_dtype, seed_worker, set_seed
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -84,8 +86,8 @@ def train(cfg: MAEConfig) -> None:
     )
 
     # --- AMP ---
-    amp_dtype = torch.float16 if device.type == "cuda" else torch.float32
-    amp_enabled = device.type == "cuda"
+    amp_dtype: torch.dtype = resolve_amp_dtype(cfg.amp_dtype)
+    amp_enabled: bool = cfg.use_amp and device.type == "cuda"
     scaler = GradScaler(device=device.type, enabled=amp_enabled)
 
     # --- Training Loop ---
@@ -125,4 +127,6 @@ def train(cfg: MAEConfig) -> None:
         if (epoch + 1) % cfg.save_every == 0 or (epoch + 1) == cfg.epochs:
             ckpt = cfg.output_dir / f"mae_epoch_{epoch + 1:04d}"
             model.save_pretrained(ckpt)
-            logger.info(f"Saved checkpoint -> {ckpt}")
+            logger.info(f"Saved checkpoint to {ckpt}")
+
+    logger.info("Training complete!")
