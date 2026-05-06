@@ -85,14 +85,14 @@ def collect_dicom_files(input_dir: str | Path) -> list[str]:
     """Recursively collect all valid DICOM files from the input directory."""
 
     dicom_files = []
-    for root, _, files in Path(input_dir).rglob("*"):
-        for fname in files:
-            fpath = Path(root) / fname
-            try:
-                pydicom.dcmread(fpath, stop_before_pixels=True)
-                dicom_files.append(fpath)
-            except Exception:
-                pass
+    for fpath in Path(input_dir).rglob("*"):
+        if not fpath.is_file():
+            continue
+        try:
+            pydicom.dcmread(fpath, stop_before_pixels=True)
+            dicom_files.append(fpath)
+        except Exception:
+            pass
     return sorted(dicom_files)
 
 
