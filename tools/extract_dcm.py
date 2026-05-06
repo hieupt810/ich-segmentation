@@ -1,106 +1,130 @@
+import argparse
 import logging
-from argparse import ArgumentParser, Namespace
-from pathlib import Path
+import os
+import sys
+from argparse import Namespace
 
 import numpy as np
 import pydicom
 from PIL import Image
-from pydicom.errors import InvalidDicomError
+from pydicom.dataset import FileDataset
 
-# Configure logging for monitoring
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-
-class DicomSliceExtractor:
-    def __init__(self, input_dir: str | Path, output_dir: str | Path) -> None:
-        self.input_dir = Path(input_dir)
-        self.output_dir = Path(output_dir)
-
-        # Ensure the output directory exists
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-
-    def _normalize_pixel_array(self, pixel_array: np.ndarray) -> np.ndarray:
-        array_min = pixel_array.min()
-        array_max = pixel_array.max()
-
-        # Prevent division by zero
-        if array_max - array_min == 0:
-            return np.zeros_like(pixel_array, dtype=np.uint8)
-
-        # Min-max normalization to [0, 255]
-        normalized = (pixel_array - array_min) / (array_max - array_min)
-        return (normalized * 255).astype(np.uint8)
-
-    def process_single_dicom(self, file_path: Path) -> Path | None:
-        try:
-            # Read the DICOM file
-            dataset = pydicom.dcmread(file_path)
-
-            # Ensure the dataset contains pixel data
-            if not hasattr(dataset, "pixel_array"):
-                logger.warning(f"No pixel data found in {file_path.name}.")
-                return None
-
-            # Extract and normalize the pixel array
-            raw_array = dataset.pixel_array
-            normalized_array = self._normalize_pixel_array(raw_array)
-
-            # Convert to a Pillow Image and save
-            image = Image.fromarray(normalized_array)
-            output_filename = self.output_dir / f"{file_path.stem}.png"
-            image.save(output_filename)
-
-            logger.info(f"Successfully extracted: {output_filename.name}")
-            return output_filename
-        except InvalidDicomError:
-            logger.error(f"Invalid DICOM file encountered: {file_path.name}")
-            return None
-        except Exception as e:
-            logger.error(f"Failed to process {file_path.name}. Reason: {e}")
-            return None
-
-    def extract_all_slices(self) -> list[Path]:
-        saved_files: list[Path] = []
-        for item in self.input_dir.iterdir():
-            if item.is_file() and item.suffix.lower() in [".dcm", ".dicom"]:
-                result = self.process_single_dicom(item)
-                if result:
-                    saved_files.append(result)
-
-        logger.info(
-            f"Extraction complete. Successfully processed {len(saved_files)} files."
-        )
-        return saved_files
+WINDOW_WIDTH = 200
+WINDOW_LEVEL = 40
 
 
-def build_parser() -> Namespace:
-    parser = ArgumentParser(
-        description="Extract slices from DICOM files and save as PNG images."
+def apply_window(
+    hu_array: np.ndarray,
+    window_width: float,
+    window_level: float,
+) -> np.ndarray:
+    lower = window_level - window_width / 2
+    upper = window_level + window_width / 2
+    windowed = np.clip(hu_array, lower, upper)
+    windowed = ((windowed - lower) / (upper - lower) * 255).astype(np.uint8)
+    return windowed
+
+
+def hu_to_array(ds: FileDataset) -> np.ndarray:
+    raw = ds.pixel_array.astype(np.float32)
+    slope = float(getattr(ds, "RescaleSlope", 1))
+    intercept = float(getattr(ds, "RescaleIntercept", 0))
+    return raw * slope + intercept
+
+
+def extract_slices_from_file(dicom_path: str, output_dir: str) -> int:
+    ds = pydicom.dcmread(dicom_path)
+
+    if not hasattr(ds, "pixel_array"):
+        logger.warning("No pixel data found in %s. Skipping.", dicom_path)
+        return 0
+
+    hu_array = hu_to_array(ds)
+    is_volume = hu_array.ndim == 3
+    slices = hu_array if is_volume else hu_array[np.newaxis, ...]
+    num_slices = slices.shape[0]
+
+    base_name = os.path.splitext(os.path.basename(dicom_path))[0]
+
+    for idx in range(num_slices):
+        windowed = apply_window(slices[idx], WINDOW_WIDTH, WINDOW_LEVEL)
+        img = Image.fromarray(windowed, mode="L")
+        slice_tag = f"slice{idx:04d}" if is_volume else "slice0000"
+        filename = f"{base_name}_{slice_tag}.png"
+        out_path = os.path.join(output_dir, filename)
+        img.save(out_path)
+        logger.debug("Saved %s", out_path)
+
+    return num_slices
+
+
+def collect_dicom_files(input_dir: str) -> list[str]:
+    dicom_files = []
+    for root, _, files in os.walk(input_dir):
+        for fname in files:
+            fpath = os.path.join(root, fname)
+            try:
+                pydicom.dcmread(fpath, stop_before_pixels=True)
+                dicom_files.append(fpath)
+            except Exception:
+                pass
+    return sorted(dicom_files)
+
+
+def parse_args() -> Namespace:
+    parser = argparse.ArgumentParser(
+        description="Extract DICOM slices with brain/ICH windowing."
     )
     parser.add_argument(
-        "-i",
-        "--input_dir",
-        required=True,
-        type=Path,
-        help="Directory containing DICOM files.",
+        "input_dir",
+        help="Path to a directory containing DICOM files.",
     )
     parser.add_argument(
         "-o",
-        "--output_dir",
-        required=True,
-        type=Path,
-        help="Directory to save extracted PNG images.",
+        "--output",
+        help="Output directory for extracted slice images. Default: dicom_slices/",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if not os.path.isdir(args.input_dir):
+        parser.error(f"input_dir is not a valid directory: {args.input_dir}")
+
+    return args
 
 
 def main() -> None:
-    args = build_parser()
-    extractor = DicomSliceExtractor(args.input_dir, args.output_dir)
-    extractor.extract_all_slices()
+    args = parse_args()
+
+    dicom_files = collect_dicom_files(args.input_dir)
+    if not dicom_files:
+        logger.error("No valid DICOM files found in: %s", args.input_dir)
+        sys.exit(1)
+
+    logger.info(
+        "Found %d DICOM file(s). Window — width: %d HU, level: %d HU.",
+        len(dicom_files),
+        WINDOW_WIDTH,
+        WINDOW_LEVEL,
+    )
+    os.makedirs(args.output, exist_ok=True)
+
+    total_slices = 0
+    for fpath in dicom_files:
+        logger.info("Processing: %s", fpath)
+        try:
+            count = extract_slices_from_file(fpath, args.output)
+            total_slices += count
+            logger.info("  -> Extracted %d slice(s).", count)
+        except Exception as exc:
+            logger.error("Failed to process %s: %s", fpath, exc)
+
+    logger.info("Done. Total slices extracted: %d.", total_slices)
 
 
 if __name__ == "__main__":

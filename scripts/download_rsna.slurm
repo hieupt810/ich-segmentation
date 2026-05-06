@@ -4,13 +4,14 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
-#SBATCH --time=20:00:00
+#SBATCH --time=40:00:00
 #SBATCH --output=download_rsna.out
 #SBATCH --error=download_rsna.err
 
 ## Print some info about the job
 echo "Job ID: $SLURM_JOB_ID | Running on partition: $SLURM_JOB_PARTITION"
 echo "Job started at: $(date)"
+echo "-------------------------------"
 
 ## Reset and load necessary modules
 module reset
@@ -25,4 +26,6 @@ conda activate research_env
 python tools/download_rsna.py
 
 ## Print job completion info
+du -h data/rsna-intracranial-hemorrhage-detection
+echo "-------------------------------"
 echo "Job completed at: $(date)"

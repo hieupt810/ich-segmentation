@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def main() -> None:
     path = kagglehub.competition_download(
-        "rsna-intracranial-hemorrhage-detection", output_dir="data/rsna"
+        "rsna-intracranial-hemorrhage-detection", output_dir="data"
     )
     logger.info(f"Dataset downloaded to: {path}")
 
