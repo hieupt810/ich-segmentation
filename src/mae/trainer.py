@@ -1,5 +1,8 @@
 import logging
+import os
+import random
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -35,11 +38,31 @@ def _get_scheduler(
     )
 
 
+def _set_seed(seed: int):
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    random.seed(seed)
+    np.random.default_rng(seed)
+
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+def _worker_init_fn(worker_id: int):
+    seed = torch.initial_seed() % 2**32
+
+    random.seed(seed + worker_id)
+    np.random.default_rng(seed + worker_id)
+
+
 def train_mae(cfg: MAEConfig):
+    _set_seed(cfg.seed)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = MAE(cfg).to(device)
 
-    dataset = RSNADataset(cfg.data_dir)
+    dataset = RSNADataset(cfg)
     dataloader = DataLoader(
         dataset,
         batch_size=cfg.batch_size,
@@ -47,6 +70,7 @@ def train_mae(cfg: MAEConfig):
         drop_last=True,
         num_workers=cfg.num_workers,
         pin_memory=(device.type == "cuda"),
+        worker_init_fn=_worker_init_fn,
     )
 
     criterion = nn.MSELoss()
@@ -64,7 +88,11 @@ def train_mae(cfg: MAEConfig):
             images = images.to(device, non_blocking=True)
 
             optimizer.zero_grad()
-            with autocast(device_type=device.type, enabled=(device.type == "cuda")):
+            with autocast(
+                device_type=device.type,
+                dtype=torch.float16,
+                enabled=(device.type == "cuda"),
+            ):
                 predictions, targets = model(images)
                 loss = criterion(predictions, targets)
 

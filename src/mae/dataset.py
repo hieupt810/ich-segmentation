@@ -6,19 +6,19 @@ from PIL import Image
 from torch import Tensor
 from torch.utils.data import Dataset
 
+from .config import MAEConfig
+
 
 class RSNADataset(Dataset):
-    def __init__(
-        self, data_dir: str | Path, subsample_size: int = 25000, seed: int = 42
-    ) -> None:
+    def __init__(self, cfg: MAEConfig) -> None:
         super().__init__()
 
         paths: list[Path] = [
-            p for p in Path(data_dir).rglob("*") if p.suffix.lower() == ".png"
+            p for p in Path(cfg.data_dir).rglob("*") if p.suffix.lower() == ".png"
         ]
 
-        if subsample_size < len(paths):
-            paths = random.Random(seed).sample(paths, subsample_size)
+        if cfg.subset_size < len(paths):
+            paths = random.Random(cfg.seed).sample(paths, cfg.subset_size)
 
         self.image_paths: list[Path] = sorted(paths)
         self.transform = MAETransform()
