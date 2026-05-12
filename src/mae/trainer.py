@@ -7,17 +7,12 @@ import torch.optim.lr_scheduler as lr_scheduler
 from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 
-from ..utils import set_seed, worker_init_fn
+from ..utils import set_seed, setup_logging, worker_init_fn
 from .config import MAEConfig
 from .dataset import RSNADataset
 from .model import MAE
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
+setup_logging()
 
 
 def _get_scheduler(
@@ -60,7 +55,7 @@ def train_mae(cfg: MAEConfig):
     scheduler = _get_scheduler(optimizer, cfg)
     scaler = GradScaler(device=device.type, enabled=(device.type == "cuda"))
 
-    logger.info("Starting training...")
+    logging.info("Starting training...")
     best_loss = float("inf")
     for epoch in range(cfg.epochs):
         total_loss = 0.0
@@ -86,11 +81,11 @@ def train_mae(cfg: MAEConfig):
             scheduler.step()
 
         avg_loss = total_loss / len(dataloader)
-        logger.info(f"epoch: {epoch:>02}, loss: {avg_loss:.5f}")
+        logging.info(f"epoch: {epoch:>02}, loss: {avg_loss:.5f}")
 
         if avg_loss < best_loss:
             best_loss = avg_loss
             torch.save(model.state_dict(), cfg.output_dir / "best_model.pth")
-            logger.info(f"New best model saved with loss: {best_loss:.5f}")
+            logging.info(f"New best model saved with loss: {best_loss:.5f}")
 
-    logger.info("Training completed.")
+    logging.info("Training completed.")

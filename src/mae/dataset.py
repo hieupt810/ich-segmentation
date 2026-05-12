@@ -1,3 +1,4 @@
+import logging
 import random
 from pathlib import Path
 
@@ -6,7 +7,10 @@ from PIL import Image
 from torch import Tensor
 from torch.utils.data import Dataset
 
+from ..utils import setup_logging
 from .config import MAEConfig
+
+setup_logging()
 
 
 class RSNADataset(Dataset):
@@ -16,9 +20,11 @@ class RSNADataset(Dataset):
         paths: list[Path] = [
             p for p in Path(cfg.data_dir).rglob("*") if p.suffix.lower() == ".png"
         ]
+        logging.info(f"Found {len(paths)} images in {cfg.data_dir}.")
 
         if cfg.subset_size < len(paths):
             paths = random.Random(cfg.seed).sample(paths, cfg.subset_size)
+            logging.info(f"Using a subset of {len(paths)} images for training.")
 
         self.image_paths: list[Path] = sorted(paths)
         self.transform = MAETransform()

@@ -18,7 +18,6 @@ export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 ## Print some info about the job
 echo "Job started at: $(date)"
 echo "Job ID: ${SLURM_JOB_ID:-unknown}"
-echo "Node list: ${SLURM_JOB_NODELIST:-unknown}"
 echo "-------------------------------"
 
 ## Reset and load necessary modules
