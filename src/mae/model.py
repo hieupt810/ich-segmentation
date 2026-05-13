@@ -11,7 +11,7 @@ class MAE(nn.Module):
     def __init__(self, cfg: MAEConfig) -> None:
         super().__init__()
 
-        vit = vit_small_patch32_224()
+        vit = vit_small_patch32_224(in_chans=cfg.in_chans)
         self.mask_ratio = cfg.mask_ratio
         self.patch_size = vit.patch_embed.patch_size[0]
 
@@ -20,6 +20,7 @@ class MAE(nn.Module):
         self.decoder = MAEDecoderTIMM(
             num_patches=vit.patch_embed.num_patches,
             patch_size=self.patch_size,
+            in_chans=cfg.in_chans,
             embed_dim=vit.embed_dim,
             decoder_embed_dim=cfg.decoder_dim,
             decoder_depth=cfg.decoder_depth,

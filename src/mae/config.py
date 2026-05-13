@@ -13,13 +13,14 @@ class MAEConfig:
     output_dir: Path = Path("output")
 
     seed: int = 42
-    subset_size: int = 100000
+    subset_size: int = 50000
     batch_size: int = 256
     num_workers: int = 16
     epochs: int = 400
     warmup_epochs: int = 10
 
     # Hyperparameters for the MAE model
+    in_chans: int = 1
     attn_drop_rate: float = 0.0
     decoder_depth: int = 1
     decoder_dim: int = 512

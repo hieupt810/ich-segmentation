@@ -33,7 +33,7 @@ class RSNADataset(Dataset):
                 ),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                transforms.Normalize(mean=[0.5], std=[0.5]),
             ]
         )
 
@@ -41,5 +41,5 @@ class RSNADataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, index: int):
-        image = Image.open(self.image_paths[index]).convert("RGB")
+        image = Image.open(self.image_paths[index]).convert("L")
         return self.transform(image)
