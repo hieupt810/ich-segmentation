@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=64G
+#SBATCH --mem=128G
 #SBATCH --output=train_mae.out
 #SBATCH --error=train_mae.err
 

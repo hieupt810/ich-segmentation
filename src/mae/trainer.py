@@ -59,10 +59,26 @@ def train_mae(cfg: MAEConfig):
     scheduler = _get_scheduler(optimizer, cfg)
     scaler = GradScaler(device=device.type, enabled=(device.type == "cuda"))
 
+    # --- Load checkpoint if exists ---
+    checkpoint_path = cfg.output_dir / "best_model.pth"
+    if checkpoint_path.exists():
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        start_epoch = checkpoint["epoch"]
+        best_loss = checkpoint["best_loss"]
+        logging.info(
+            f"Resuming training from epoch {start_epoch} with best loss {best_loss:.5f}"
+        )
+    else:
+        start_epoch = 0
+        best_loss = float("inf")
+        logging.info("No checkpoint found, starting training from scratch.")
+
     # --- Training Loop ---
     logging.info("Starting training...")
-    best_loss = float("inf")
-    for epoch in range(cfg.epochs):
+    for epoch in range(start_epoch, cfg.epochs):
         total_loss = 0.0
         pbar = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{cfg.epochs}")
         for images in pbar:

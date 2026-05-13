@@ -14,7 +14,7 @@ class MAEConfig:
 
     seed: int = 42
     subset_size: int = 50000
-    batch_size: int = 256
+    batch_size: int = 512
     num_workers: int = 16
     epochs: int = 400
     warmup_epochs: int = 10
