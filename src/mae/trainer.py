@@ -92,7 +92,16 @@ def train_mae(cfg: MAEConfig):
 
         if avg_loss < best_loss:
             best_loss = avg_loss
-            torch.save(model.state_dict(), cfg.output_dir / "best_model.pth")
+            torch.save(
+                {
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "scheduler_state_dict": scheduler.state_dict(),
+                    "epoch": epoch + 1,
+                    "best_loss": best_loss,
+                },
+                cfg.output_dir / "best_model.pth",
+            )
             logging.info(f"New best model saved with loss: {best_loss:.5f}")
 
     logging.info("Training completed.")

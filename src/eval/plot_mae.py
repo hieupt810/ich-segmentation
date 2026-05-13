@@ -18,7 +18,8 @@ def plot_reconstruction(
 
     model = MAE(cfg).to(device)
     checkpoint_path = cfg.output_dir / "best_model.pth"
-    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    state_dict = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    model.load_state_dict(state_dict["model_state_dict"])
     model.eval()
 
     transform = build_transform(cfg)
