@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=train_mae_pipeline
-#SBATCH --partition=amperenodes-medium
+#SBATCH --partition=amperenodes
 #SBATCH --ntasks-per-socket=1
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
