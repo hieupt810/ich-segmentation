@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from lightly.models import utils
 from lightly.models.modules import MAEDecoderTIMM, MaskedVisionTransformerTIMM
-from timm.models.vision_transformer import vit_small_patch32_224
+from timm.models.vision_transformer import vit_small_patch16_224
 
 from .config import MAEConfig
 
@@ -11,7 +11,7 @@ class MAE(nn.Module):
     def __init__(self, cfg: MAEConfig) -> None:
         super().__init__()
 
-        vit = vit_small_patch32_224(in_chans=cfg.in_chans)
+        vit = vit_small_patch16_224(in_chans=cfg.in_chans)
         self.mask_ratio = cfg.mask_ratio
         self.patch_size = vit.patch_embed.patch_size[0]
 
