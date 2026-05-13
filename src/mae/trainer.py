@@ -6,6 +6,7 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from ..utils import set_seed, setup_logging, worker_init_fn
 from .config import MAEConfig
@@ -59,7 +60,8 @@ def train_mae(cfg: MAEConfig):
     best_loss = float("inf")
     for epoch in range(cfg.epochs):
         total_loss = 0.0
-        for images in dataloader:
+        pbar = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{cfg.epochs}")
+        for images in pbar:
             images = images.to(device, non_blocking=True)
 
             optimizer.zero_grad()
@@ -78,10 +80,10 @@ def train_mae(cfg: MAEConfig):
             scaler.update()
 
             total_loss += loss.detach()
-            scheduler.step()
 
         avg_loss = total_loss / len(dataloader)
-        logging.info(f"epoch: {epoch:>02}, loss: {avg_loss:.5f}")
+        pbar.set_postfix({"loss": f"{avg_loss:.5f}"})
+        scheduler.step()
 
         if avg_loss < best_loss:
             best_loss = avg_loss
