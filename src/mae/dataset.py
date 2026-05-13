@@ -31,7 +31,6 @@ class RSNADataset(Dataset):
                 transforms.Resize(
                     (224, 224), interpolation=transforms.InterpolationMode.BICUBIC
                 ),
-                transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5], std=[0.5]),
             ]

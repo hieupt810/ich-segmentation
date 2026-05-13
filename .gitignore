@@ -10,6 +10,7 @@ wheels/
 .venv
 .env
 !.env.example
-uv.lock
 
+.ruff_cache/
+uv.lock
 .DS_Store
