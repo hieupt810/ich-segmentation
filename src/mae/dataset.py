@@ -2,10 +2,9 @@ import logging
 import random
 from pathlib import Path
 
-from lightly.transforms import MAETransform
 from PIL import Image
-from torch import Tensor
 from torch.utils.data import Dataset
+from torchvision import transforms
 
 from ..utils import setup_logging
 from .config import MAEConfig
@@ -27,12 +26,20 @@ class RSNADataset(Dataset):
             logging.info(f"Using a subset of {len(paths)} images for training.")
 
         self.image_paths: list[Path] = sorted(paths)
-        self.transform = MAETransform()
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(
+                    (224, 224), interpolation=transforms.InterpolationMode.BICUBIC
+                ),
+                transforms.RandomHorizontalFlip(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                transforms.ToTensor(),
+            ]
+        )
 
     def __len__(self) -> int:
         return len(self.image_paths)
 
     def __getitem__(self, index: int):
         image = Image.open(self.image_paths[index]).convert("RGB")
-        views: list[Tensor] = self.transform(image)
-        return views[0]
+        return self.transform(image)

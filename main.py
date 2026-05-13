@@ -1,5 +1,7 @@
 import argparse
 
+from src import mae
+
 
 def build_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -14,9 +16,8 @@ def build_parser() -> argparse.Namespace:
 def main():
     args = build_parser()
     if args.mode == "train-mae":
-        from src import run_mae_pipeline
-
-        run_mae_pipeline()
+        cfg = mae.MAEConfig()
+        mae.train_mae(cfg)
     elif args.mode == "train-segmentation":
         pass
 

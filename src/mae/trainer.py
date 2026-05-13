@@ -35,9 +35,11 @@ def _get_scheduler(
 def train_mae(cfg: MAEConfig):
     set_seed(cfg.seed)
 
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = MAE(cfg).to(device)
 
+    # --- Data ---
     dataset = RSNADataset(cfg)
     dataloader = DataLoader(
         dataset,
@@ -49,6 +51,10 @@ def train_mae(cfg: MAEConfig):
         worker_init_fn=worker_init_fn,
     )
 
+    test_batch = next(iter(dataloader))
+    logging.info(f"Test batch shape: {test_batch.shape}")
+
+    # --- Training Setup ---
     criterion = nn.MSELoss()
     optimizer = optim.AdamW(
         model.parameters(), lr=1.5e-4, betas=(0.9, 0.95), weight_decay=0.05
@@ -56,6 +62,7 @@ def train_mae(cfg: MAEConfig):
     scheduler = _get_scheduler(optimizer, cfg)
     scaler = GradScaler(device=device.type, enabled=(device.type == "cuda"))
 
+    # --- Training Loop ---
     logging.info("Starting training...")
     best_loss = float("inf")
     for epoch in range(cfg.epochs):
@@ -79,7 +86,8 @@ def train_mae(cfg: MAEConfig):
             scaler.step(optimizer)
             scaler.update()
 
-            total_loss += loss.detach()
+            total_loss += loss.item()
+            pbar.set_postfix({"loss": f"{loss.item():.5f}"})
 
         avg_loss = total_loss / len(dataloader)
         pbar.set_postfix({"loss": f"{avg_loss:.5f}"})

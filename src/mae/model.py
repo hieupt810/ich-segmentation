@@ -12,7 +12,6 @@ class MAE(nn.Module):
         super().__init__()
 
         vit = vit_small_patch32_224()
-
         self.mask_ratio = cfg.mask_ratio
         self.patch_size = vit.patch_embed.patch_size[0]
 
