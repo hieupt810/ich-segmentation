@@ -51,9 +51,6 @@ def train_mae(cfg: MAEConfig):
         worker_init_fn=worker_init_fn,
     )
 
-    test_batch = next(iter(dataloader))
-    logging.info(f"Test batch shape: {test_batch.shape}")
-
     # --- Training Setup ---
     criterion = nn.MSELoss()
     optimizer = optim.AdamW(
