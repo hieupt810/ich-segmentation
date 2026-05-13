@@ -12,6 +12,18 @@ from .config import MAEConfig
 setup_logging()
 
 
+def build_transform(cfg: MAEConfig) -> transforms.Compose:
+    return transforms.Compose(
+        [
+            transforms.Resize(
+                (224, 224), interpolation=transforms.InterpolationMode.BICUBIC
+            ),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5], std=[0.5]),
+        ]
+    )
+
+
 class RSNADataset(Dataset):
     def __init__(self, cfg: MAEConfig) -> None:
         super().__init__()
@@ -26,15 +38,7 @@ class RSNADataset(Dataset):
             logging.info(f"Using a subset of {len(paths)} images for training.")
 
         self.image_paths: list[Path] = sorted(paths)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(
-                    (224, 224), interpolation=transforms.InterpolationMode.BICUBIC
-                ),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5], std=[0.5]),
-            ]
-        )
+        self.transform = build_transform(cfg)
 
     def __len__(self) -> int:
         return len(self.image_paths)

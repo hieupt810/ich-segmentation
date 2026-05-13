@@ -7,8 +7,24 @@ def build_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "mode",
-        choices=["train-mae", "train-segmentation"],
+        choices=["train-mae", "plot-reconstruction", "train-segmentation"],
         help="Choose the training mode.",
+    )
+    parser.add_argument(
+        "--image",
+        nargs="+",
+        help="One or more image paths (required for plot-reconstruction).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed controlling the MAE mask pattern.",
+    )
+    parser.add_argument(
+        "--no-show",
+        action="store_true",
+        help="Skip plt.show(); only save the figure.",
     )
     return parser.parse_args()
 
@@ -18,6 +34,12 @@ def main():
     if args.mode == "train-mae":
         cfg = mae.MAEConfig()
         mae.train_mae(cfg)
+    elif args.mode == "plot-reconstruction":
+        if not args.image:
+            raise SystemExit("plot-reconstruction requires --image PATH [PATH ...]")
+        from src.eval.plot_mae import plot_reconstruction
+
+        plot_reconstruction(args.image, seed=args.seed, show=not args.no_show)
     elif args.mode == "train-segmentation":
         pass
 

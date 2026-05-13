@@ -12,5 +12,6 @@ wheels/
 !.env.example
 
 .ruff_cache/
+output/
 uv.lock
 .DS_Store
