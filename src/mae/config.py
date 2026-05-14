@@ -14,7 +14,8 @@ class MAEConfig:
 
     data_dir: Path = Path(os.environ.get("DATA_DIR", "data/rsna"))
     output_dir: Path = Path("output")
-    checkpoint_path: Path = output_dir / f"mae_{vit_name}.pt"
+    best_checkpoint_path: Path = output_dir / f"best_mae_{vit_name}.pt"
+    last_checkpoint_path: Path = output_dir / f"last_mae_{vit_name}.pt"
 
     # Hyperparameters for training
     seed: int = 42

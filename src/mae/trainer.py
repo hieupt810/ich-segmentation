@@ -62,9 +62,9 @@ def train_mae(cfg: MAEConfig):
     scaler = GradScaler(device=device.type, enabled=(device.type == "cuda"))
 
     # --- Load checkpoint if exists ---
-    if cfg.checkpoint_path.exists():
+    if cfg.last_checkpoint_path.exists():
         checkpoint = torch.load(
-            cfg.checkpoint_path, map_location=device, weights_only=True
+            cfg.last_checkpoint_path, map_location=device, weights_only=True
         )
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -119,8 +119,20 @@ def train_mae(cfg: MAEConfig):
                     "epoch": epoch + 1,
                     "best_loss": best_loss,
                 },
-                cfg.checkpoint_path,
+                cfg.best_checkpoint_path,
             )
             logging.info(f"New best model saved with loss: {best_loss:.5f}")
+
+        # Save last checkpoint every epoch
+        torch.save(
+            {
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "scheduler_state_dict": scheduler.state_dict(),
+                "epoch": epoch + 1,
+                "best_loss": best_loss,
+            },
+            cfg.last_checkpoint_path,
+        )
 
     logging.info("Training completed.")

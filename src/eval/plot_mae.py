@@ -8,17 +8,14 @@ from PIL import Image
 from src.mae import MAE, MAEConfig, build_transform
 
 
-def plot_reconstruction(
-    image_paths: list[str],
-    seed: int = 42,
-    show: bool = True,
-) -> None:
+def plot_reconstruction(image_paths: list[str], show: bool = True) -> None:
     cfg = MAEConfig()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = MAE(cfg).to(device)
-    checkpoint_path = cfg.output_dir / "best_model.pth"
-    state_dict = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    state_dict = torch.load(
+        cfg.best_checkpoint_path, map_location=device, weights_only=True
+    )
     model.load_state_dict(state_dict["model_state_dict"])
     model.eval()
 
@@ -27,9 +24,9 @@ def plot_reconstruction(
     images = torch.stack(tensors).to(device)
 
     with torch.no_grad():
-        torch.manual_seed(seed)
+        torch.manual_seed(cfg.seed)
         if device.type == "cuda":
-            torch.cuda.manual_seed_all(seed)
+            torch.cuda.manual_seed_all(cfg.seed)
 
         idx_keep, idx_mask = utils.random_token_mask(
             size=(images.shape[0], model.sequence_length),
