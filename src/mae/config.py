@@ -20,8 +20,8 @@ class MAEConfig:
     # Hyperparameters for training
     seed: int = 42
     subset_size: int = 50000
-    batch_size: int = 2048
-    num_workers: int = 32
+    batch_size: int = 4096
+    num_workers: int = 64
     epochs: int = 400
     warmup_epochs: int = 10
 
