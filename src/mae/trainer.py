@@ -63,7 +63,9 @@ def train_mae(cfg: MAEConfig):
 
     # --- Load checkpoint if exists ---
     if cfg.checkpoint_path.exists():
-        checkpoint = torch.load(cfg.checkpoint_path, map_location=device)
+        checkpoint = torch.load(
+            cfg.checkpoint_path, map_location=device, weights_only=True
+        )
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])

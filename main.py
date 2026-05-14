@@ -1,7 +1,5 @@
 import argparse
 
-from src import mae
-
 
 def build_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -32,12 +30,15 @@ def build_parser() -> argparse.Namespace:
 def main():
     args = build_parser()
     if args.mode == "train-mae":
+        from src import mae
+
         cfg = mae.MAEConfig()
         mae.train_mae(cfg)
     elif args.mode == "plot-reconstruction":
         if not args.image:
             raise SystemExit("plot-reconstruction requires --image PATH [PATH ...]")
-        from src.eval.plot_mae import plot_reconstruction
+
+        from src.eval import plot_reconstruction
 
         plot_reconstruction(args.image, seed=args.seed, show=not args.no_show)
     elif args.mode == "train-segmentation":
