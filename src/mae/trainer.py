@@ -1,4 +1,5 @@
 import logging
+import pprint
 
 import torch
 import torch.nn as nn
@@ -34,6 +35,7 @@ def _get_scheduler(
 
 def train_mae(cfg: MAEConfig):
     set_seed(cfg.seed)
+    logging.info(pprint.pformat(cfg))
 
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -60,9 +62,8 @@ def train_mae(cfg: MAEConfig):
     scaler = GradScaler(device=device.type, enabled=(device.type == "cuda"))
 
     # --- Load checkpoint if exists ---
-    checkpoint_path = cfg.output_dir / "best_model.pth"
-    if checkpoint_path.exists():
-        checkpoint = torch.load(checkpoint_path, map_location=device)
+    if cfg.checkpoint_path.exists():
+        checkpoint = torch.load(cfg.checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
@@ -116,7 +117,7 @@ def train_mae(cfg: MAEConfig):
                     "epoch": epoch + 1,
                     "best_loss": best_loss,
                 },
-                cfg.output_dir / "best_model.pth",
+                cfg.checkpoint_path,
             )
             logging.info(f"New best model saved with loss: {best_loss:.5f}")
 

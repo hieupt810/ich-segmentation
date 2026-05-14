@@ -9,12 +9,17 @@ load_dotenv()
 
 @dataclass
 class MAEConfig:
+    vit_name: str = os.environ.get("VIT_NAME", "vit_small_patch16_224")
+    image_size: int = 224
+
     data_dir: Path = Path(os.environ.get("DATA_DIR", "data/rsna"))
     output_dir: Path = Path("output")
+    checkpoint_path: Path = output_dir / f"mae_{vit_name}.pt"
 
+    # Hyperparameters for training
     seed: int = 42
     subset_size: int = 50000
-    batch_size: int = 512
+    batch_size: int = 1024
     num_workers: int = 16
     epochs: int = 400
     warmup_epochs: int = 10
